@@ -1,16 +1,23 @@
 import uuid
 from datetime import datetime
-from typing import Literal
 
-from app.schemas.author import AuthorBrief
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.enums import Genre
+from app.schemas.author import AuthorBrief
 
 
 class BookCreate(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     author: str = Field(min_length=1, max_length=255)
+
+    @field_validator("title", "author")
+    @classmethod
+    def must_not_be_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("must not be blank")
+        return v.strip()
+
     genre: Genre
     year: int = Field(ge=1800, le=2026)
 
