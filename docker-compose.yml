@@ -6,6 +6,7 @@ services:
     volumes:
       - ./app:/app/app
       - ./alembic:/app/alembic
+      - ./tests:/app/tests
     env_file:
       - .env
     environment:
