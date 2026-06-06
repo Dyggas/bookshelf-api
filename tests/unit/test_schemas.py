@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from app.enums import Genre
 from app.schemas.auth import RegisterRequest
-from app.schemas.book import BookCreate, BookFilters, BookUpdate
+from app.schemas.book import CURRENT_YEAR, BookCreate, BookFilters, BookUpdate
 
 
 class TestBookCreate:
@@ -73,7 +73,7 @@ class TestBookCreate:
                 title="Future Book",
                 author="Author",
                 genre=Genre.FICTION,
-                year=2027,
+                year=CURRENT_YEAR + 1,
             )
         assert "year" in str(exc_info.value)
 
@@ -170,5 +170,5 @@ class TestBookFilters:
 
     def test_invalid_year_to(self):
         with pytest.raises(ValidationError) as exc_info:
-            BookFilters(year_to=2027)
+            BookFilters(year_to=CURRENT_YEAR + 1)
         assert "year_to" in str(exc_info.value)

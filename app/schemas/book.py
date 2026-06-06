@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, field_validator
 from app.enums import Genre
 from app.schemas.author import AuthorBrief
 
+CURRENT_YEAR = datetime.now().year
+
 
 class BookCreate(BaseModel):
     title: str = Field(min_length=1, max_length=500)
@@ -19,14 +21,14 @@ class BookCreate(BaseModel):
         return v.strip()
 
     genre: Genre
-    year: int = Field(ge=1800, le=2026)
+    year: int = Field(ge=1800, le=CURRENT_YEAR)
 
 
 class BookUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=500)
     author: str | None = Field(default=None, min_length=1, max_length=255)
     genre: Genre | None = None
-    year: int | None = Field(default=None, ge=1800, le=2026)
+    year: int | None = Field(default=None, ge=1800, le=CURRENT_YEAR)
 
 
 class BookResponse(BaseModel):
@@ -46,7 +48,7 @@ class BookFilters(BaseModel):
     author: str | None = None
     genre: Genre | None = None
     year_from: int | None = Field(default=None, ge=1800)
-    year_to: int | None = Field(default=None, le=2026)
+    year_to: int | None = Field(default=None, le=CURRENT_YEAR)
 
 
 class PaginatedResponse(BaseModel):
