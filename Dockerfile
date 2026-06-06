@@ -10,5 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev \
 COPY pyproject.toml .
 RUN pip install --no-cache-dir ".[dev]"
 
+COPY alembic.ini .
+
 # Source code is mounted via docker-compose for hot reloading
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

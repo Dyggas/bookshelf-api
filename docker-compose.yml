@@ -8,6 +8,8 @@ services:
       - ./alembic:/app/alembic
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
     depends_on:
       db:
         condition: service_healthy
