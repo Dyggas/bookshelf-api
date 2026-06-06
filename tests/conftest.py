@@ -15,27 +15,22 @@ from app.models.base import Base
 TEST_DATABASE_URL = settings.DATABASE_URL.replace("/bookshelf", "/bookshelf_test")
 ADMIN_DATABASE_URL = settings.DATABASE_URL.replace("/bookshelf", "/postgres")
 
-_test_engine = None
-
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_test_database():
     """Create test database and tables once per test session."""
-    global _test_engine
-
     admin_engine = create_async_engine(ADMIN_DATABASE_URL, isolation_level="AUTOCOMMIT")
     async with admin_engine.begin() as conn:
         await conn.execute(text("DROP DATABASE IF EXISTS bookshelf_test"))
         await conn.execute(text("CREATE DATABASE bookshelf_test"))
     await admin_engine.dispose()
 
-    _test_engine = create_async_engine(TEST_DATABASE_URL)
-    async with _test_engine.begin() as conn:
+    engine = create_async_engine(TEST_DATABASE_URL)
+    async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await engine.dispose()
 
     yield
-
-    await _test_engine.dispose()
 
     admin_engine = create_async_engine(ADMIN_DATABASE_URL, isolation_level="AUTOCOMMIT")
     async with admin_engine.begin() as conn:
@@ -46,7 +41,8 @@ async def setup_test_database():
 @pytest_asyncio.fixture
 async def db_session() -> AsyncGenerator[AsyncSession]:
     """Transactional session — rolls back after each test for isolation."""
-    connection = await _test_engine.connect()
+    engine = create_async_engine(TEST_DATABASE_URL)
+    connection = await engine.connect()
     transaction = await connection.begin()
     session = AsyncSession(bind=connection, expire_on_commit=False)
 
@@ -55,6 +51,7 @@ async def db_session() -> AsyncGenerator[AsyncSession]:
     await session.close()
     await transaction.rollback()
     await connection.close()
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture
