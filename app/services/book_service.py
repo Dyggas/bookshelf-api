@@ -37,13 +37,14 @@ class BookService:
         author = await self.author_repo.get_or_create(self.session, data.author)
 
         try:
-            book = await self.book_repo.create(
-                self.session,
-                title=data.title,
-                author_id=author.id,
-                genre=data.genre.value,
-                year=data.year,
-            )
+            async with self.session.begin_nested():
+                book = await self.book_repo.create(
+                    self.session,
+                    title=data.title,
+                    author_id=author.id,
+                    genre=data.genre.value,
+                    year=data.year,
+                )
         except IntegrityError:
             raise ConflictError("This book already exists for this author")
 
@@ -73,7 +74,8 @@ class BookService:
             setattr(book, key, value)
 
         try:
-            await self.session.flush()
+            async with self.session.begin_nested():
+                await self.session.flush()
         except IntegrityError:
             raise ConflictError("This book already exists for this author")
 
@@ -128,9 +130,9 @@ class BookService:
         }
         sort_col = allowed_sort.get(sort_by, Book.created_at)
         if sort_order == "asc":
-            query = query.order_by(sort_col.asc())
+            query = query.order_by(sort_col.asc(), Book.id.asc())
         else:
-            query = query.order_by(sort_col.desc())
+            query = query.order_by(sort_col.desc(), Book.id.desc())
 
         # Pagination
         offset = (page - 1) * page_size
