@@ -21,8 +21,8 @@ class Book(TimestampMixin, Base):
             "year <= EXTRACT(YEAR FROM CURRENT_DATE)", name="books_year_max"
         ),
         UniqueConstraint("title", "author_id", name="uq_books_title_author"),
-        Index("ix_books_genre", "genre"),
         Index("ix_books_year", "year"),
+        Index("ix_books_author_id", "author_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
