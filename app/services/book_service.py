@@ -2,6 +2,7 @@ import math
 from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -11,7 +12,14 @@ from app.models.author import Author
 from app.models.book import Book
 from app.repositories.author_repo import AuthorRepository
 from app.repositories.book_repo import BookRepository
-from app.schemas.book import BookCreate, BookFilters, BookUpdate, PaginatedResponse
+from app.schemas.book import (
+    BookCreate,
+    BookExportRow,
+    BookFilters,
+    BookUpdate,
+    BulkImportResult,
+    PaginatedResponse,
+)
 
 
 class BookService:
@@ -130,9 +138,9 @@ class BookService:
         }
         sort_col = allowed_sort.get(sort_by, Book.created_at)
         if sort_order == "asc":
-            query = query.order_by(sort_col.asc(), Book.id.asc())
+            query = query.order_by(sort_col.asc(), Book.title.asc())
         else:
-            query = query.order_by(sort_col.desc(), Book.id.desc())
+            query = query.order_by(sort_col.desc(), Book.title.asc())
 
         # Pagination
         offset = (page - 1) * page_size
@@ -148,3 +156,74 @@ class BookService:
             page_size=page_size,
             pages=math.ceil(total / page_size) if total > 0 else 0,
         )
+
+    async def bulk_import(self, books_data: list[BookCreate]) -> BulkImportResult:
+        total = len(books_data)
+        if total == 0:
+            return BulkImportResult(total=0, created=0, skipped=0)
+
+        # 1. Collect all unique author names
+        author_names = list({book_data.author for book_data in books_data})
+
+        # 2. Resolve authors: insert new ones, then select all to get IDs
+        await self.session.execute(
+            pg_insert(Author)
+            .values([{"name": name} for name in author_names])
+            .on_conflict_do_nothing(index_elements=["name"])
+        )
+        await self.session.flush()
+
+        result = await self.session.execute(
+            select(Author).where(Author.name.in_(author_names))
+        )
+        author_map = {a.name: a.id for a in result.scalars().all()}
+
+        # 3. Build book row dicts with resolved author_id
+        book_rows = []
+        for book_data in books_data:
+            book_rows.append(
+                {
+                    "title": book_data.title,
+                    "author_id": author_map[book_data.author],
+                    "genre": book_data.genre.value,
+                    "year": book_data.year,
+                }
+            )
+
+        # 4. Insert books in batches, skipping duplicates
+        batch_size = 100
+        created = 0
+        for i in range(0, len(book_rows), batch_size):
+            batch = book_rows[i : i + batch_size]
+            result = await self.session.execute(
+                pg_insert(Book)
+                .values(batch)
+                .on_conflict_do_nothing(constraint="uq_books_title_author")
+            )
+            created += result.rowcount
+
+        await self.session.flush()
+
+        return BulkImportResult(
+            total=total,
+            created=created,
+            skipped=total - created,
+        )
+
+    async def export_books(self) -> list[BookExportRow]:
+        result = await self.session.execute(
+            select(Book).options(selectinload(Book.author))
+        )
+        books = list(result.scalars().all())
+        return [
+            BookExportRow(
+                id=book.id,
+                title=book.title,
+                author=book.author.name,
+                genre=book.genre,
+                year=book.year,
+                created_at=book.created_at,
+                updated_at=book.updated_at,
+            )
+            for book in books
+        ]

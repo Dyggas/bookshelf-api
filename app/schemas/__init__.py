@@ -7,29 +7,25 @@ from app.schemas.auth import (
 from app.schemas.author import AuthorBrief
 from app.schemas.book import (
     BookCreate,
+    BookExportRow,
     BookFilters,
     BookResponse,
     BookUpdate,
-    PaginatedResponse,
-)
-from app.schemas.shared import (
-    BulkImportError,
     BulkImportResult,
-    ErrorResponse,
+    PaginatedResponse,
 )
 
 __all__ = [
     "AuthorBrief",
     "BookCreate",
+    "BookExportRow",
     "BookFilters",
     "BookResponse",
     "BookUpdate",
+    "BulkImportResult",
     "PaginatedResponse",
     "LoginRequest",
     "RefreshRequest",
     "RegisterRequest",
     "TokenResponse",
-    "BulkImportError",
-    "BulkImportResult",
-    "ErrorResponse",
 ]

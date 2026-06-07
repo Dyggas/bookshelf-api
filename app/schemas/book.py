@@ -57,3 +57,21 @@ class PaginatedResponse(BaseModel):
     page: int
     page_size: int
     pages: int
+
+
+class BulkImportResult(BaseModel):
+    total: int  # how many rows were in the file
+    created: int  # how many were actually inserted
+    skipped: int  # how many were duplicates (total - created)
+
+
+class BookExportRow(BaseModel):
+    id: uuid.UUID
+    title: str
+    author: str  # just the author name for export
+    genre: Genre
+    year: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
