@@ -11,6 +11,8 @@ COPY pyproject.toml .
 RUN pip install --no-cache-dir ".[dev]"
 
 COPY alembic.ini .
+COPY app/ app/
+COPY alembic/ alembic/
+COPY scripts/ scripts/
 
-# Source code is mounted via docker-compose for hot reloading
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
