@@ -1,9 +1,16 @@
 import uuid
 
-from app.enums import Genre
-from app.models.base import Base, TimestampMixin
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.base import Base, TimestampMixin
 
 
 class Book(TimestampMixin, Base):
@@ -14,6 +21,8 @@ class Book(TimestampMixin, Base):
             "year <= EXTRACT(YEAR FROM CURRENT_DATE)", name="books_year_max"
         ),
         UniqueConstraint("title", "author_id", name="uq_books_title_author"),
+        Index("ix_books_genre", "genre"),
+        Index("ix_books_year", "year"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

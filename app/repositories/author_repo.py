@@ -21,7 +21,9 @@ class AuthorRepository:
                 await session.flush()
                 return author
         except IntegrityError:
-            pass  # savepoint rolled back, outer transaction intact
+            # Savepoint rolled back — expire stale objects from identity map
+            # so the subsequent select fetches fresh data from DB.
+            session.expire_all()
 
         # Another request created it concurrently
         result = await session.execute(select(Author).where(Author.name == name))
