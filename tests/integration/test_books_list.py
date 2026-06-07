@@ -176,11 +176,10 @@ class TestListSorting:
         assert body["items"][1]["year"] == 1850
 
     async def test_default_sort_is_created_at_desc(self, auth_client: AsyncClient):
-        book_a = await create_book(auth_client, title="First Created")
-        book_b = await create_book(auth_client, title="Second Created", author="Other")
+        await create_book(auth_client, title="First Created")
+        await create_book(auth_client, title="Second Created", author="Other")
         resp = await auth_client.get("/api/v1/books/")
         body = resp.json()
-        # Most recently created first
         assert body["items"][0]["title"] == "Second Created"
         assert body["items"][1]["title"] == "First Created"
 
